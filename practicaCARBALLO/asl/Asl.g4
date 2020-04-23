@@ -46,7 +46,7 @@ declarations
         ;
 
 variable_decl
-        : VAR ID ':' type
+        : VAR ID (',' ID)* ':' type
         ;
 
 type    : INT 
@@ -143,15 +143,16 @@ ENDFUNC   : 'endfunc' ;
 READ      : 'read' ;
 WRITE     : 'write' ;
 
-//ID
-
-ID        : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')* ;
 
 //LITERAL VALUES//
 
 INTVAL    : ('0'..'9')+ ;
 FLOATVAL  : ('0'..'9')+ '.' ('0'..'9')+ ;
 BOOLVAL   : 'true' | 'false' ;
+
+//ID
+
+ID        : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')* ;
 CHARVAL   : ('\'') ( ESC_SEQ | ~('\\'|'\'') ) ('\'') ;
 
 // Strings (in quotes) with escape sequences
