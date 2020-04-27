@@ -343,6 +343,20 @@ antlrcpp::Any TypeCheckVisitor::visitCallFunc(AslParser::CallFuncContext *ctx) {
   if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
     Errors.isNotFunction(ctx->ident());
 
+  if(ctx->expr(0)){
+    std::size_t sizePar = Types.getNumOfParameters(t1);
+    if((size_t)ctx->expr().size() != sizePar)
+      Errors.numberOfParameters(ctx->ident());
+
+    std::vector<TypesMgr::TypeId> lParamsTy = Types.getFuncParamsTypes(t1);
+    for(uint i = 0; (size_t)i<sizePar; i++) {
+      TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
+      if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
+        Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
+    }
+  }
+
+  t1 = Types.getFuncReturnType(t1);
   putTypeDecor(ctx, t1);
   bool b = getIsLValueDecor(ctx->ident());
   putIsLValueDecor(ctx, b);

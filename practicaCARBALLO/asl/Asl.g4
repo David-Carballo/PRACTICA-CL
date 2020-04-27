@@ -97,7 +97,7 @@ expr    : ident '[' expr ']'                                # array
         | expr op=AND expr                                  # logical
         | expr op=OR expr                                   # logical
         | (INTVAL | FLOATVAL | BOOLVAL | CHARVAL)           # value
-        | ident '('')'                                      # callFunc
+        | ident '(' (expr (',' expr)*)? ')'                 # callFunc
         | ident                                             # exprIdent
         ;
 
