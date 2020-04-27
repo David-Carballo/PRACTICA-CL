@@ -202,9 +202,19 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
   DEBUG_ENTER();
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
-  putTypeDecor(ctx, t1);
+
+  if(ctx->expr()) {
+    if(not Types.isErrorTy(t1) and not Types.isArrayTy(t1))
+      Errors.nonArrayInArrayAccess(ctx);
+    visit(ctx->expr());
+    TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
+    if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2))
+      Errors.nonIntegerIndexInArrayAccess(ctx->expr());
+  }
+
   bool b = getIsLValueDecor(ctx->ident());
   putIsLValueDecor(ctx, b);
+  putTypeDecor(ctx, t1);
   DEBUG_EXIT();
   return 0;
 }
@@ -213,10 +223,20 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
 
 antlrcpp::Any TypeCheckVisitor::visitArray(AslParser::ArrayContext *ctx){
   DEBUG_ENTER();
+
+  visit(ctx->ident());
+  TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
+  if(not Types.isErrorTy(t1) and not Types.isArrayTy(t1))
+    Errors.nonArrayInArrayAccess(ctx);
+
   visit(ctx->expr());
-  TypesMgr::TypeId t = getTypeDecor(ctx->expr());
-  putTypeDecor(ctx, t);
-  putIsLValueDecor(ctx, false);
+  TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
+  if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2))
+    Errors.nonIntegerIndexInArrayAccess(ctx->expr());
+
+  putTypeDecor(ctx, t1);
+  bool b = getIsLValueDecor(ctx->ident());
+  putIsLValueDecor(ctx, b);
   DEBUG_EXIT();
   return 0;
 }
