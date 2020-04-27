@@ -335,6 +335,23 @@ antlrcpp::Any TypeCheckVisitor::visitValue(AslParser::ValueContext *ctx) {
   return 0;
 }
 
+antlrcpp::Any TypeCheckVisitor::visitCallFunc(AslParser::CallFuncContext *ctx) {
+  DEBUG_ENTER();
+
+  visit(ctx->ident());
+  TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
+  if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
+    Errors.isNotFunction(ctx->ident());
+
+  putTypeDecor(ctx, t1);
+  bool b = getIsLValueDecor(ctx->ident());
+  putIsLValueDecor(ctx, b);
+
+  DEBUG_EXIT();
+  return 0;
+}
+
+
 antlrcpp::Any TypeCheckVisitor::visitExprIdent(AslParser::ExprIdentContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->ident());
