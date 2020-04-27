@@ -38,7 +38,11 @@ program : function+ EOF
 
 // A function has a name, a list of parameters and a list of statements
 function
-        : FUNC ID '(' ')' declarations statements ENDFUNC
+        : FUNC ID '(' parameters? ')' (':' type)? declarations statements ENDFUNC
+        ;
+
+parameters
+        : ID ':' type (',' ID ':' type)*
         ;
 
 declarations
@@ -76,7 +80,7 @@ statement
           // While statement
         | WHILE expr 'do' statements 'endwhile' # whileStmt
           // Return
-        | RETURN ';'                            # returnStmt
+        | RETURN expr? ';'                       # returnStmt
         ;
 // Grammar for left expressions (l-values in C++)
 left_expr
