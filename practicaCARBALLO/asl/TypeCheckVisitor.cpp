@@ -49,9 +49,9 @@
 
 // Constructor
 TypeCheckVisitor::TypeCheckVisitor(TypesMgr       & Types,
-				   SymTable       & Symbols,
-				   TreeDecoration & Decorations,
-				   SemErrors      & Errors) :
+           SymTable       & Symbols,
+           TreeDecoration & Decorations,
+           SemErrors      & Errors) :
   Types{Types},
   Symbols {Symbols},
   Decorations{Decorations},
@@ -118,8 +118,10 @@ antlrcpp::Any TypeCheckVisitor::visitAssignStmt(AslParser::AssignStmtContext *ct
   DEBUG_ENTER();
   visit(ctx->left_expr());
   visit(ctx->expr());
+
   TypesMgr::TypeId t1 = getTypeDecor(ctx->left_expr());
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
+  
   if ((not Types.isErrorTy(t1)) and (not Types.isErrorTy(t2)) and
       (not Types.copyableTypes(t1, t2)))
     Errors.incompatibleAssignment(ctx->ASSIGN());
@@ -144,9 +146,34 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
-  if (not Types.isFunctionTy(t1) and not Types.isErrorTy(t1)) {
+
+  // std::cout << ctx->getText() << " -> ";
+  // Types.dump(t1);
+  // std::cout << std::endl;
+  if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
     Errors.isNotCallable(ctx->ident());
+
+  else {
+    //Void function
+    if(Types.isVoidFunction(t1)){
+      Errors.isNotFunction(ctx->ident());
+    }
+    //Equal num Parameters
+    std::size_t sizePar = Types.getNumOfParameters(t1);
+    if((size_t)ctx->expr().size() != sizePar)
+      Errors.numberOfParameters(ctx->ident());
+    //Equal type Parameters
+    else{
+      std::vector<TypesMgr::TypeId> lParamsTy = Types.getFuncParamsTypes(t1);
+
+      for(uint i = 0; (size_t)i<sizePar; i++) {
+        TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
+        if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
+          Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
+      }
+    }
   }
+
   DEBUG_EXIT();
   return 0;
 }
@@ -295,6 +322,7 @@ antlrcpp::Any TypeCheckVisitor::visitRelational(AslParser::RelationalContext *ct
   TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
   visit(ctx->expr(1));
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
+  
   std::string oper = ctx->op->getText();
   if ((not Types.isErrorTy(t1)) and (not Types.isErrorTy(t2)) and
       (not Types.comparableTypes(t1, t2, oper)))
@@ -340,26 +368,37 @@ antlrcpp::Any TypeCheckVisitor::visitCallFunc(AslParser::CallFuncContext *ctx) {
 
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
-  if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
-    Errors.isNotFunction(ctx->ident());
 
-  if(ctx->expr(0)){
+  TypesMgr::TypeId t = Types.createErrorTy();
+  if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
+    Errors.isNotCallable(ctx->ident());
+
+  else {
+    t = Types.getFuncReturnType(t1);
+
+    //Void function
+    if(Types.isVoidFunction(t1)){
+      Errors.isNotFunction(ctx->ident());
+      t = Types.createErrorTy();
+    }
+    //Equal num Parameters
     std::size_t sizePar = Types.getNumOfParameters(t1);
     if((size_t)ctx->expr().size() != sizePar)
       Errors.numberOfParameters(ctx->ident());
+    //Equal type Parameters
+    else{
+      std::vector<TypesMgr::TypeId> lParamsTy = Types.getFuncParamsTypes(t1);
 
-    std::vector<TypesMgr::TypeId> lParamsTy = Types.getFuncParamsTypes(t1);
-    for(uint i = 0; (size_t)i<sizePar; i++) {
-      TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
-      if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
-        Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
+      for(uint i = 0; (size_t)i<sizePar; i++) {
+        TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
+        if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
+          Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
+      }
     }
   }
 
-  t1 = Types.getFuncReturnType(t1);
-  putTypeDecor(ctx, t1);
-  bool b = getIsLValueDecor(ctx->ident());
-  putIsLValueDecor(ctx, b);
+  putTypeDecor(ctx, t);
+  putIsLValueDecor(ctx, false);
 
   DEBUG_EXIT();
   return 0;

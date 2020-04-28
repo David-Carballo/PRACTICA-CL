@@ -98,7 +98,7 @@ antlrcpp::Any SymbolsVisitor::visitFunction(AslParser::FunctionContext *ctx) {
     }
     TypesMgr::TypeId tRet;
     if(ctx->type()) {
-      //visit(ctx->type());
+      visit(ctx->type());
       tRet = getTypeDecor(ctx->type());
     }
     else tRet = Types.createVoidTy();
