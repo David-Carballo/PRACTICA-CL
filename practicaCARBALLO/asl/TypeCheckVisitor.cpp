@@ -77,6 +77,17 @@ antlrcpp::Any TypeCheckVisitor::visitProgram(AslParser::ProgramContext *ctx) {
 
 antlrcpp::Any TypeCheckVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
+
+  TypesMgr::TypeId t1;
+  if(ctx->basic_type()){
+    visit(ctx->basic_type());
+    t1 = getTypeDecor(ctx->basic_type());
+  } 
+  else {
+    t1 = Types.createVoidTy();
+  }
+  Symbols.setCurrentFunctionTy(t1);
+
   SymTable::ScopeId sc = getScopeDecor(ctx);
   Symbols.pushThisScope(sc);
   // Symbols.print();
@@ -218,6 +229,47 @@ antlrcpp::Any TypeCheckVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx)
 
 antlrcpp::Any TypeCheckVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ctx) {
   DEBUG_ENTER();
+
+  TypesMgr::TypeId tFunc = Symbols.getCurrentFunctionTy();
+
+  if(ctx->expr()) {
+    visit(ctx->expr());
+    TypesMgr::TypeId tRet = getTypeDecor(ctx->expr());
+
+    //std::cout << ctx->getText() << " ||" << Types.to_string(tRet) << " == " << Types.to_string(tFunc) << std::endl;
+    // is void
+    if(not Types.isErrorTy(tRet) and Types.equalTypes(Types.createVoidTy(), tFunc))
+      Errors.incompatibleReturn(ctx->RETURN());
+    
+    // return is valid type
+    else if(not Types.isErrorTy(tRet) and not Types.isPrimitiveNonVoidTy(tRet))
+      Errors.incompatibleReturn(ctx->RETURN());
+
+    // 
+    else if (not Types.isErrorTy(tRet) and not Types.equalTypes(tRet, tFunc)) {
+      if (not (Types.equalTypes(Types.createFloatTy(), tFunc) and 
+        Types.equalTypes(Types.createIntegerTy(), tRet)))
+        Errors.incompatibleReturn(ctx->RETURN());
+    }
+
+  }
+  else {
+    if (not Types.equalTypes(Types.createVoidTy(), tFunc))
+      Errors.incompatibleReturn(ctx->RETURN());
+  }
+
+  // //void function with return type
+  // if (Types.isVoidFunction(tFunc) and ctx->expr()) Errors.incompatibleReturn(ctx->RETURN());
+
+  // if (not Types.isVoidFunction(tFunc)) {
+  //   if (not ctx->expr()) Errors.incompatibleReturn(ctx->RETURN());
+  //   else{
+  //     visit(ctx->expr());
+  //     TypesMgr::TypeId tRet = getTypeDecor(ctx->expr());
+  //     if(tRet != tFunc) Errors.incompatibleReturn(ctx->RETURN());
+  //   }
+  // }
+
   DEBUG_EXIT();
   return 0;
 }
