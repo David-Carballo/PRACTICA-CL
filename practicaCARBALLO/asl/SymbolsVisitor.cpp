@@ -163,7 +163,7 @@ antlrcpp::Any SymbolsVisitor::visitType(AslParser::TypeContext *ctx) {
   }
   else{
     visit(ctx->array_type());
-    t = getTypeDecor(ctx->basic_type());
+    t = getTypeDecor(ctx->array_type());
   }
   putTypeDecor(ctx, t);
   DEBUG_EXIT();

@@ -147,9 +147,6 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
 
-  // std::cout << ctx->getText() << " -> ";
-  // Types.dump(t1);
-  // std::cout << std::endl;
   if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
     Errors.isNotCallable(ctx->ident());
 
@@ -231,23 +228,25 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
   bool b = getIsLValueDecor(ctx->ident());
 
-  //Array
-  if(ctx->expr() and not Types.isErrorTy(t1)) {
-    visit(ctx->expr());
+  if(not Types.isErrorTy(t1)) {
+    //Array
+    if(ctx->expr()){
+      visit(ctx->expr());
 
-    if(not Types.isArrayTy(t1)) {
-      Errors.nonArrayInArrayAccess(ctx);
-      b = false;
-      t1 = Types.createErrorTy();
-    }
-    else {
-      TypesMgr::TypeId tElem = Types.getArrayElemType(t1);
-      t1 = tElem;
-      //Error index [not type]
-      TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
-      if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2)){
-        Errors.nonIntegerIndexInArrayAccess(ctx->expr());
+      if(not Types.isArrayTy(t1)) {
+        Errors.nonArrayInArrayAccess(ctx);
         b = false;
+        t1 = Types.createErrorTy();
+      }
+      else {
+        TypesMgr::TypeId tElem = Types.getArrayElemType(t1);
+        t1 = tElem;
+        //Error index [not type]
+        TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
+        if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2)){
+          Errors.nonIntegerIndexInArrayAccess(ctx->expr());
+          b = false;
+        }
       }
     }
   }
@@ -265,11 +264,16 @@ antlrcpp::Any TypeCheckVisitor::visitArray(AslParser::ArrayContext *ctx){
 
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
-  if(not Types.isErrorTy(t1) and not Types.isArrayTy(t1))
-    Errors.nonArrayInArrayAccess(ctx);
+
+  if(not Types.isErrorTy(t1)){
+    if(not Types.isArrayTy(t1))
+      Errors.nonArrayInArrayAccess(ctx);
+    else t1 = Types.getArrayElemType(t1);
+  }
 
   visit(ctx->expr());
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
+
   if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2))
     Errors.nonIntegerIndexInArrayAccess(ctx->expr());
 
