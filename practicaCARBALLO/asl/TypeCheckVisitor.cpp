@@ -132,7 +132,6 @@ antlrcpp::Any TypeCheckVisitor::visitAssignStmt(AslParser::AssignStmtContext *ct
 
   TypesMgr::TypeId t1 = getTypeDecor(ctx->left_expr());
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
-  
   if ((not Types.isErrorTy(t1)) and (not Types.isErrorTy(t2)) and
       (not Types.copyableTypes(t1, t2)))
     Errors.incompatibleAssignment(ctx->ASSIGN());
@@ -158,24 +157,22 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
 
+
   if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
     Errors.isNotCallable(ctx->ident());
 
   else if(not Types.isErrorTy(t1)){
-    //Void function
 
-    if(Types.isVoidFunction(t1)){
-      Errors.isNotFunction(ctx->ident());
-    }
     //Equal num Parameters
     std::size_t sizePar = Types.getNumOfParameters(t1);
     if((size_t)ctx->expr().size() != sizePar)
       Errors.numberOfParameters(ctx->ident());
-    //Equal type Parameters
+    //Equal type Parameters, falla si en un void hay parametros(no se comprueban)
     else{
       auto lParamsTy = Types.getFuncParamsTypes(t1);
 
       for(uint i = 0; i<lParamsTy.size(); i++) {
+        visit(ctx->expr(i));
         TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
         if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
           if(not (Types.isFloatTy(lParamsTy[i]) and Types.isIntegerTy(t2)))
@@ -303,22 +300,24 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
 antlrcpp::Any TypeCheckVisitor::visitArray(AslParser::ArrayContext *ctx){
   DEBUG_ENTER();
 
+  TypesMgr::TypeId t = Types.createErrorTy();
+
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
+  visit(ctx->expr());
+  TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
 
   if(not Types.isErrorTy(t1)){
     if(not Types.isArrayTy(t1))
       Errors.nonArrayInArrayAccess(ctx);
-    else t1 = Types.getArrayElemType(t1);
+    else t = Types.getArrayElemType(t1);
   }
 
-  visit(ctx->expr());
-  TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
 
   if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2))
     Errors.nonIntegerIndexInArrayAccess(ctx->expr());
 
-  putTypeDecor(ctx, t1);
+  putTypeDecor(ctx, t);
   bool b = getIsLValueDecor(ctx->ident());
   putIsLValueDecor(ctx, b);
   DEBUG_EXIT();
