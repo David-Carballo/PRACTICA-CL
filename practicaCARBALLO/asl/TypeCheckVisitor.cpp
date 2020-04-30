@@ -449,6 +449,7 @@ antlrcpp::Any TypeCheckVisitor::visitCallFunc(AslParser::CallFuncContext *ctx) {
       std::vector<TypesMgr::TypeId> lParamsTy = Types.getFuncParamsTypes(t1);
 
       for(uint i = 0; i<lParamsTy.size(); i++) {
+        visit(ctx->expr(i));
         TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
         if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i])){
           if(not (Types.isFloatTy(lParamsTy[i]) and Types.isIntegerTy(t2)))
