@@ -161,8 +161,9 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
     Errors.isNotCallable(ctx->ident());
 
-  else {
+  else if(not Types.isErrorTy(t1)){
     //Void function
+
     if(Types.isVoidFunction(t1)){
       Errors.isNotFunction(ctx->ident());
     }
@@ -172,12 +173,13 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
       Errors.numberOfParameters(ctx->ident());
     //Equal type Parameters
     else{
-      std::vector<TypesMgr::TypeId> lParamsTy = Types.getFuncParamsTypes(t1);
+      auto lParamsTy = Types.getFuncParamsTypes(t1);
 
-      for(uint i = 0; (size_t)i<sizePar; i++) {
+      for(uint i = 0; i<lParamsTy.size(); i++) {
         TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
         if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
-          Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
+          if(not (Types.isFloatTy(lParamsTy[i]) and Types.isIntegerTy(t2)))
+            Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
       }
     }
   }
@@ -236,7 +238,6 @@ antlrcpp::Any TypeCheckVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ct
     visit(ctx->expr());
     TypesMgr::TypeId tRet = getTypeDecor(ctx->expr());
 
-    //std::cout << ctx->getText() << " ||" << Types.to_string(tRet) << " == " << Types.to_string(tFunc) << std::endl;
     // is void
     if(not Types.isErrorTy(tRet) and Types.equalTypes(Types.createVoidTy(), tFunc))
       Errors.incompatibleReturn(ctx->RETURN());
@@ -257,18 +258,6 @@ antlrcpp::Any TypeCheckVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ct
     if (not Types.equalTypes(Types.createVoidTy(), tFunc))
       Errors.incompatibleReturn(ctx->RETURN());
   }
-
-  // //void function with return type
-  // if (Types.isVoidFunction(tFunc) and ctx->expr()) Errors.incompatibleReturn(ctx->RETURN());
-
-  // if (not Types.isVoidFunction(tFunc)) {
-  //   if (not ctx->expr()) Errors.incompatibleReturn(ctx->RETURN());
-  //   else{
-  //     visit(ctx->expr());
-  //     TypesMgr::TypeId tRet = getTypeDecor(ctx->expr());
-  //     if(tRet != tFunc) Errors.incompatibleReturn(ctx->RETURN());
-  //   }
-  // }
 
   DEBUG_EXIT();
   return 0;
@@ -436,8 +425,8 @@ antlrcpp::Any TypeCheckVisitor::visitCallFunc(AslParser::CallFuncContext *ctx) {
 
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
-
   TypesMgr::TypeId t = Types.createErrorTy();
+
   if(not Types.isErrorTy(t1) and not Types.isFunctionTy(t1))
     Errors.isNotCallable(ctx->ident());
 
@@ -449,18 +438,22 @@ antlrcpp::Any TypeCheckVisitor::visitCallFunc(AslParser::CallFuncContext *ctx) {
       Errors.isNotFunction(ctx->ident());
       t = Types.createErrorTy();
     }
+
     //Equal num Parameters
     std::size_t sizePar = Types.getNumOfParameters(t1);
-    if((size_t)ctx->expr().size() != sizePar)
+    if((size_t) (ctx->expr().size()) != sizePar)
       Errors.numberOfParameters(ctx->ident());
+
     //Equal type Parameters
     else{
       std::vector<TypesMgr::TypeId> lParamsTy = Types.getFuncParamsTypes(t1);
 
-      for(uint i = 0; (size_t)i<sizePar; i++) {
+      for(uint i = 0; i<lParamsTy.size(); i++) {
         TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
-        if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
-          Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
+        if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i])){
+          if(not (Types.isFloatTy(lParamsTy[i]) and Types.isIntegerTy(t2)))
+            Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
+        }
       }
     }
   }
