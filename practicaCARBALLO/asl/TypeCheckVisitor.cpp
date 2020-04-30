@@ -369,6 +369,7 @@ antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ct
       ((not Types.isErrorTy(t2)) and (not Types.isIntegerTy(t2))))
     Errors.incompatibleOperator(ctx->op);
   }
+  
   else {
     if (((not Types.isErrorTy(t1)) and (not Types.isNumericTy(t1))) or
         ((not Types.isErrorTy(t2)) and (not Types.isNumericTy(t2))))
