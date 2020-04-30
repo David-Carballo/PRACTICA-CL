@@ -163,6 +163,10 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
 
   else if(not Types.isErrorTy(t1)){
 
+    for(uint i = 0; i < ctx->expr().size(); ++i) {
+      visit(ctx->expr(i));
+    }
+
     //Equal num Parameters
     std::size_t sizePar = Types.getNumOfParameters(t1);
     if((size_t)ctx->expr().size() != sizePar)
@@ -172,7 +176,6 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
       auto lParamsTy = Types.getFuncParamsTypes(t1);
 
       for(uint i = 0; i<lParamsTy.size(); i++) {
-        visit(ctx->expr(i));
         TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(i));
         if(not Types.isErrorTy(t2) and not Types.equalTypes(t2, lParamsTy[i]))
           if(not (Types.isFloatTy(lParamsTy[i]) and Types.isIntegerTy(t2)))
