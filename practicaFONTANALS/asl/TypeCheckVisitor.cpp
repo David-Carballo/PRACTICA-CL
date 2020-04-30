@@ -167,15 +167,13 @@ antlrcpp::Any TypeCheckVisitor::visitInvocation(AslParser::InvocationContext *ct
       auto &&parameterTypes = Types.getFuncParamsTypes(type);
       if (arguments.size() != parameterTypes.size())
         Errors.numberOfParameters(ident);
-      else {
-        size_t i = 0;
-        for (auto &&argument : arguments) {
-          visit(argument);
-          std::cout << '#' << i << ' ' << Types.to_string(getTypeDecor(argument)) << " -> " << Types.to_string(parameterTypes[i]) << std::endl;
-          if (!Types.copyableTypes(parameterTypes[i], getTypeDecor(argument)))
-            Errors.incompatibleParameter(argument, i+1, ctx); // Error takes argument numbers starting at 1
-          ++i;
-        }
+      size_t i = 0;
+      for (auto &&argument : arguments) {
+        // Always visit arguments, as they may contain errors.
+        visit(argument);
+        if (i < parameterTypes.size() && !Types.copyableTypes(parameterTypes[i], getTypeDecor(argument)))
+          Errors.incompatibleParameter(argument, i+1, ctx); // Error takes argument numbers starting at 1
+        ++i;
       }
     } else
       Errors.isNotCallable(ident);
