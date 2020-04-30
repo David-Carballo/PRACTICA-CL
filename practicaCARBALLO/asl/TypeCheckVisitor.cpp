@@ -270,6 +270,11 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
     //Array
     if(ctx->expr()){
       visit(ctx->expr());
+      TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());      
+      if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2)){
+        Errors.nonIntegerIndexInArrayAccess(ctx->expr());
+        b = false;
+      }
 
       if(not Types.isArrayTy(t1)) {
         Errors.nonArrayInArrayAccess(ctx);
@@ -278,13 +283,7 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
       }
       else {
         TypesMgr::TypeId tElem = Types.getArrayElemType(t1);
-        t1 = tElem;
-        //Error index [not type]
-        TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
-        if(not Types.isErrorTy(t2) and not Types.isIntegerTy(t2)){
-          Errors.nonIntegerIndexInArrayAccess(ctx->expr());
-          b = false;
-        }
+        t1 = tElem;    
       }
     }
   }
@@ -369,7 +368,7 @@ antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ct
       ((not Types.isErrorTy(t2)) and (not Types.isIntegerTy(t2))))
     Errors.incompatibleOperator(ctx->op);
   }
-  
+
   else {
     if (((not Types.isErrorTy(t1)) and (not Types.isNumericTy(t1))) or
         ((not Types.isErrorTy(t2)) and (not Types.isNumericTy(t2))))
