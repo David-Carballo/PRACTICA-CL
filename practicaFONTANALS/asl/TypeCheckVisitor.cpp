@@ -241,8 +241,10 @@ antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ct
   TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
   visit(ctx->expr(1));
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
-  if (((not Types.isErrorTy(t1)) and (not Types.isNumericTy(t1))) or
-      ((not Types.isErrorTy(t2)) and (not Types.isNumericTy(t2))))
+  // Pointer to member function just for the lols.
+  auto &&checkNumeric = ctx->MOD() ? &TypesMgr::isIntegerTy : &TypesMgr::isNumericTy;
+  if (((not Types.isErrorTy(t1)) and (not (Types.*checkNumeric)(t1))) or
+      ((not Types.isErrorTy(t2)) and (not (Types.*checkNumeric)(t2))))
     Errors.incompatibleOperator(ctx->op);
   TypesMgr::TypeId t = Types.createIntegerTy();
   putTypeDecor(ctx, t);

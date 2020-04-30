@@ -100,7 +100,7 @@ left_expr
 // Grammar for expressions with boolean, relational and aritmetic operators
 expr    : op=NOT expr                               # booleanUnary
         | op=(PLUS|MINUS) expr                      # arithmeticUnary
-        | expr op=(MUL|DIV) expr                    # arithmetic
+        | expr op=(MUL|DIV|MOD) expr                # arithmetic
         | expr op=(PLUS|MINUS) expr                 # arithmetic
         | expr op=(EQUAL|NEQ|LT|LE|GT|GE) expr      # relational
         | expr op=AND expr                          # boolean
@@ -133,6 +133,7 @@ PLUS      : '+' ;
 MINUS     : '-';
 MUL       : '*';
 DIV       : '/';
+MOD       : '%';
 LT        : '<';
 LE        : '<=';
 GT        : '>';
