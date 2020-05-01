@@ -226,12 +226,12 @@ ifneq ($(strip $(GENERATED) ),)
 	-rm -rf $(GENERATED)
 endif
 pristine	: realclean
-	-rm -rf $(PROGRAM) _antlr _deps
+	-rm -rf $(PROGRAM) _antlr _deps .runAntlr
 
 # -------------------------------------------
 
 # How to make or update the generated files
-$(NEEDED)		 	: .runAntlr
+$(NEEDED)	: .runAntlr
 	@:
 
 .runAntlr: $(GRAMMAR).g4
