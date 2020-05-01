@@ -78,8 +78,8 @@ antlrcpp::Any SymbolsVisitor::visitProgram(AslParser::ProgramContext *ctx) {
 
 antlrcpp::Any SymbolsVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
-  std::string funcName = ctx->ID()->getText();
-  std::string ident = ctx->ID()->getText();
+  auto &&funcName = ctx->ID()->getText();
+  auto &&ident = ctx->ID()->getText();
   if (Symbols.findInCurrentScope(ident))
     Errors.declaredIdent(ctx->ID());
   else {
@@ -91,9 +91,8 @@ antlrcpp::Any SymbolsVisitor::visitFunction(AslParser::FunctionContext *ctx) {
       visit(parameters);
       auto &&parameter_decl = parameters->parameter_decl();
       lParamsTy.reserve(parameter_decl.size());
-      for (auto &&parameter : parameter_decl) {
+      for (auto &&parameter : parameter_decl)
         lParamsTy.push_back(getTypeDecor(parameter));
-      }
     }
     TypesMgr::TypeId tRet;
     {
@@ -108,7 +107,7 @@ antlrcpp::Any SymbolsVisitor::visitFunction(AslParser::FunctionContext *ctx) {
     visit(ctx->statements());
     Symbols.print();
     Symbols.popScope();
-    TypesMgr::TypeId tFunc = Types.createFunctionTy(lParamsTy, tRet);
+    auto &&tFunc = Types.createFunctionTy(lParamsTy, tRet);
     Symbols.addFunction(ident, tFunc);
     putTypeDecor(ctx, tFunc);
   }
@@ -165,7 +164,7 @@ antlrcpp::Any SymbolsVisitor::visitVariable_decl(AslParser::Variable_declContext
   return 0;
 }
 
-antlrcpp::Any SymbolsVisitor::visitTypePrimitive(AslParser::TypePrimitiveContext *ctx){
+antlrcpp::Any SymbolsVisitor::visitTypePrimitive(AslParser::TypePrimitiveContext *ctx) {
   DEBUG_ENTER();
   auto &&primitive = ctx->primitive();
   visit(primitive);

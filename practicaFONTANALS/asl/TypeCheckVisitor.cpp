@@ -66,9 +66,8 @@ antlrcpp::Any TypeCheckVisitor::visitProgram(AslParser::ProgramContext *ctx) {
   Symbols.setCurrentFunctionTy(Types.createErrorTy());
   SymTable::ScopeId sc = getScopeDecor(ctx);
   Symbols.pushThisScope(sc);  
-  for (auto ctxFunc : ctx->function()) { 
+  for (auto ctxFunc : ctx->function())
     visit(ctxFunc);
-  }
   if (Symbols.noMainProperlyDeclared())
     Errors.noMainProperlyDeclared(ctx);
   Symbols.popScope();
@@ -137,10 +136,10 @@ antlrcpp::Any TypeCheckVisitor::visitAssignStmt(AslParser::AssignStmtContext *ct
 
 antlrcpp::Any TypeCheckVisitor::visitIfStmt(AslParser::IfStmtContext *ctx) {
   visit(ctx->expr());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr());
-  if ((not Types.isErrorTy(t1)) and (not Types.isBooleanTy(t1)))
+  auto &&t1 = getTypeDecor(ctx->expr());
+  if (!Types.isErrorTy(t1) && !Types.isBooleanTy(t1))
     Errors.booleanRequired(ctx);
-  const auto &&statements = ctx->statements();
+  auto &&statements = ctx->statements();
   visit(statements[0]);
   if (statements.size() > 1)
     visit(statements[1]);
@@ -149,8 +148,8 @@ antlrcpp::Any TypeCheckVisitor::visitIfStmt(AslParser::IfStmtContext *ctx) {
 
 antlrcpp::Any TypeCheckVisitor::visitWhileLoop(AslParser::WhileLoopContext *ctx) {
   visit(ctx->expr());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr());
-  if ((not Types.isErrorTy(t1)) and (not Types.isBooleanTy(t1)))
+  auto &&t1 = getTypeDecor(ctx->expr());
+  if (!Types.isErrorTy(t1) && !Types.isBooleanTy(t1))
     Errors.booleanRequired(ctx);
   visit(ctx->statements());
   return 0;
@@ -184,19 +183,19 @@ antlrcpp::Any TypeCheckVisitor::visitInvocation(AslParser::InvocationContext *ct
 
 antlrcpp::Any TypeCheckVisitor::visitReadStmt(AslParser::ReadStmtContext *ctx) {
   visit(ctx->left_expr());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->left_expr());
-  if ((not Types.isErrorTy(t1)) and (not Types.isPrimitiveTy(t1)) and
-      (not Types.isFunctionTy(t1)))
+  auto &&t1 = getTypeDecor(ctx->left_expr());
+  if (!Types.isErrorTy(t1) && !Types.isPrimitiveTy(t1) &&
+      !Types.isFunctionTy(t1))
     Errors.readWriteRequireBasic(ctx);
-  if ((not Types.isErrorTy(t1)) and (not getIsLValueDecor(ctx->left_expr())))
+  if (!Types.isErrorTy(t1) && !getIsLValueDecor(ctx->left_expr()))
     Errors.nonReferenceableExpression(ctx);
   return 0;
 }
 
 antlrcpp::Any TypeCheckVisitor::visitWriteExpr(AslParser::WriteExprContext *ctx) {
   visit(ctx->expr());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr());
-  if ((not Types.isErrorTy(t1)) and (not Types.isPrimitiveTy(t1)))
+  auto &&t1 = getTypeDecor(ctx->expr());
+  if (!Types.isErrorTy(t1) && !Types.isPrimitiveTy(t1))
     Errors.readWriteRequireBasic(ctx);
   return 0;
 }
@@ -228,8 +227,8 @@ antlrcpp::Any TypeCheckVisitor::visitRetStmt(AslParser::RetStmtContext *ctx) {
 
 antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx) {
   antlr4::ParserRuleContext *left;
-  if ((left = ctx->ident())) {}
-  else if ((left = ctx->subscript())) {}
+  if ((left = ctx->ident()));
+  else left = ctx->subscript();
   visit(left);
   putTypeDecor(ctx, getTypeDecor(left));
   putIsLValueDecor(ctx, getIsLValueDecor(left));
@@ -238,29 +237,29 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
 
 antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx) {
   visit(ctx->expr(0));
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
+  auto &&t1 = getTypeDecor(ctx->expr(0));
   visit(ctx->expr(1));
-  TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
+  auto &&t2 = getTypeDecor(ctx->expr(1));
   // Pointer to member function just for the lols.
   auto &&checkNumeric = ctx->MOD() ? &TypesMgr::isIntegerTy : &TypesMgr::isNumericTy;
-  if (((not Types.isErrorTy(t1)) and (not (Types.*checkNumeric)(t1))) or
-      ((not Types.isErrorTy(t2)) and (not (Types.*checkNumeric)(t2))))
+  if ((!Types.isErrorTy(t1) && !(Types.*checkNumeric)(t1)) ||
+      (!Types.isErrorTy(t2) && !(Types.*checkNumeric)(t2)))
     Errors.incompatibleOperator(ctx->op);
   // Return type: Integers do implicit cast-to-Float
-  auto &&t =
+  auto &&rt =
     (Types.isFloatTy(t1) || Types.isFloatTy(t2)) ? Types.createFloatTy()  :
                                                    Types.createIntegerTy();
-  putTypeDecor(ctx, t);
+  putTypeDecor(ctx, rt);
   putIsLValueDecor(ctx, false);
   return 0;
 }
 
 antlrcpp::Any TypeCheckVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryContext *ctx) {
   visit(ctx->expr());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr());
-  if ((not Types.isErrorTy(t1)) and (not Types.isNumericTy(t1)))
+  auto &&t1 = getTypeDecor(ctx->expr());
+  if (!Types.isErrorTy(t1) && !Types.isNumericTy(t1))
     Errors.incompatibleOperator(ctx->op);
-  TypesMgr::TypeId t = Types.createIntegerTy();
+  auto &&t = Types.createIntegerTy();
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
   return 0;
@@ -268,13 +267,13 @@ antlrcpp::Any TypeCheckVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryC
 
 antlrcpp::Any TypeCheckVisitor::visitBoolean(AslParser::BooleanContext *ctx) {
   visit(ctx->expr(0));
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
+  auto &&t1 = getTypeDecor(ctx->expr(0));
   visit(ctx->expr(1));
-  TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
-  if (((not Types.isErrorTy(t1)) and (not Types.isBooleanTy(t1))) or
-      ((not Types.isErrorTy(t2)) and (not Types.isBooleanTy(t2))))
+  auto &&t2 = getTypeDecor(ctx->expr(1));
+  if ((!Types.isErrorTy(t1) && !Types.isBooleanTy(t1)) ||
+      (!Types.isErrorTy(t2) && !Types.isBooleanTy(t2)))
     Errors.incompatibleOperator(ctx->op);
-  TypesMgr::TypeId t = Types.createBooleanTy();
+  auto &&t = Types.createBooleanTy();
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
   return 0;
@@ -282,10 +281,10 @@ antlrcpp::Any TypeCheckVisitor::visitBoolean(AslParser::BooleanContext *ctx) {
 
 antlrcpp::Any TypeCheckVisitor::visitBooleanUnary(AslParser::BooleanUnaryContext *ctx) {
   visit(ctx->expr());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr());
-  if ((not Types.isErrorTy(t1)) and (not Types.isBooleanTy(t1)))
+  auto &&t1 = getTypeDecor(ctx->expr());
+  if (!Types.isErrorTy(t1) && !Types.isBooleanTy(t1))
     Errors.incompatibleOperator(ctx->op);
-  TypesMgr::TypeId t = Types.createBooleanTy();
+  auto &&t = Types.createBooleanTy();
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
   return 0;
@@ -293,14 +292,14 @@ antlrcpp::Any TypeCheckVisitor::visitBooleanUnary(AslParser::BooleanUnaryContext
 
 antlrcpp::Any TypeCheckVisitor::visitRelational(AslParser::RelationalContext *ctx) {
   visit(ctx->expr(0));
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
+  auto &&t1 = getTypeDecor(ctx->expr(0));
   visit(ctx->expr(1));
-  TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
-  std::string oper = ctx->op->getText();
-  if ((not Types.isErrorTy(t1)) and (not Types.isErrorTy(t2)) and
-      (not Types.comparableTypes(t1, t2, oper)))
+  auto &&t2 = getTypeDecor(ctx->expr(1));
+  auto &&oper = ctx->op->getText();
+  if (!Types.isErrorTy(t1) && !Types.isErrorTy(t2) &&
+      !Types.comparableTypes(t1, t2, oper))
     Errors.incompatibleOperator(ctx->op);
-  TypesMgr::TypeId t = Types.createBooleanTy();
+  auto &&t = Types.createBooleanTy();
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
   return 0;
@@ -365,7 +364,7 @@ antlrcpp::Any TypeCheckVisitor::visitExprIdent(AslParser::ExprIdentContext *ctx)
 }
 
 antlrcpp::Any TypeCheckVisitor::visitIdent(AslParser::IdentContext *ctx) {
-  std::string ident = ctx->getText();
+  auto &&ident = ctx->getText();
   if (Symbols.findInStack(ident) == -1) {
     Errors.undeclaredIdent(ctx->ID());
     putTypeDecor(ctx, Types.createErrorTy());
