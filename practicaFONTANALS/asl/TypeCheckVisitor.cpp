@@ -246,7 +246,10 @@ antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ct
   if (((not Types.isErrorTy(t1)) and (not (Types.*checkNumeric)(t1))) or
       ((not Types.isErrorTy(t2)) and (not (Types.*checkNumeric)(t2))))
     Errors.incompatibleOperator(ctx->op);
-  TypesMgr::TypeId t = Types.createIntegerTy();
+  // Return type: Integers do implicit cast-to-Float
+  auto &&t =
+    (Types.isFloatTy(t1) || Types.isFloatTy(t2)) ? Types.createFloatTy()  :
+                                                   Types.createIntegerTy();
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
   return 0;
