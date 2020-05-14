@@ -40,7 +40,7 @@
 #include <cstddef>    // std::size_t
 
 // uncomment the following line to enable debugging messages with DEBUG*
-// #define DEBUG_BUILD
+//#define DEBUG_BUILD
 #include "../common/debug.h"
 
 // using namespace std;
@@ -236,6 +236,22 @@ antlrcpp::Any CodeGenVisitor::visitWriteString(AslParser::WriteStringContext *ct
   return code;
 }
 
+antlrcpp::Any CodeGenVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx) {
+  DEBUG_ENTER();
+  instructionList code;
+  CodeAttribs     && codAtsE = visit(ctx->expr());
+  std::string          addr1 = codAtsE.addr;
+  instructionList &    code1 = codAtsE.code;
+  instructionList &&   code2 = visit(ctx->statements());
+  std::string label = "while"+codeCounters.newLabelWHILE();
+  std::string labelEndWhile = "endwhile"+label;
+  code = instruction::LABEL(label) || code1 || instruction::FJUMP(addr1, labelEndWhile) ||
+         code2 || instruction::UJUMP(label) || instruction::LABEL(labelEndWhile);
+  DEBUG_EXIT();
+  return code;
+}
+
+
 antlrcpp::Any CodeGenVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx) {
   DEBUG_ENTER();
   CodeAttribs && codAts = visit(ctx->ident());
@@ -391,7 +407,7 @@ antlrcpp::Any CodeGenVisitor::visitValue(AslParser::ValueContext *ctx) {
   if(ctx->INTVAL()) code = instruction::ILOAD(temp, ctx->getText());
   else if(ctx->FLOATVAL()) code = instruction::FLOAD(temp, ctx->getText());
   else if(ctx->CHARVAL()) code = instruction::CHLOAD(temp, ctx->getText());
-  else code = instruction::LOAD(temp, ctx->getText());
+  else code = instruction::LOAD(temp, (ctx->getText() == "true") ? "1" : "0");
   CodeAttribs codAts(temp, "", code);
   DEBUG_EXIT();
   return codAts;
