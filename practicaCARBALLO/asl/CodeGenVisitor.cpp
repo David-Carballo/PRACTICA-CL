@@ -173,8 +173,8 @@ antlrcpp::Any CodeGenVisitor::visitIfStmt(AslParser::IfStmtContext *ctx) {
   std::string          addr1 = codAtsE.addr;
   instructionList &    code1 = codAtsE.code;
   instructionList &&   code2 = visit(ctx->statements());
-  std::string label = codeCounters.newLabelIF();
-  std::string labelEndIf = "endif"+label;
+  std::string label = "if"+codeCounters.newLabelIF();
+  std::string labelEndIf = "end"+label;
   code = code1 || instruction::FJUMP(addr1, labelEndIf) ||
          code2 || instruction::LABEL(labelEndIf);
   DEBUG_EXIT();
@@ -186,7 +186,24 @@ antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   instructionList code;
   // std::string name = ctx->ident()->ID()->getSymbol()->getText();
   std::string name = ctx->ident()->getText();
-  code = instruction::CALL(name);
+    // si tiene parametros
+  if(ctx->expr(0)){
+    for(auto e : ctx->expr()){
+      CodeAttribs     && codAtpar = visit(e);
+      std::string         addrpar = codAtpar.addr;
+      instructionList &   codepar = codAtpar.code;
+
+      code = code || codepar || instruction::PUSH(addrpar);
+    }
+    // call fname execute function fname.
+    code = code || instruction::CALL(name);
+    for(auto e : ctx->expr()){
+      code = code || instruction::POP();
+    }
+  }
+  // call fname execute function fname.
+  else code = code || instruction::CALL(name);
+
   DEBUG_EXIT();
   return code;
 }
@@ -266,7 +283,7 @@ antlrcpp::Any CodeGenVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx) {
   instructionList &    code1 = codAtsE.code;
   instructionList &&   code2 = visit(ctx->statements());
   std::string label = "while"+codeCounters.newLabelWHILE();
-  std::string labelEndWhile = "endwhile"+label;
+  std::string labelEndWhile = "end"+label;
   code = instruction::LABEL(label) || code1 || instruction::FJUMP(addr1, labelEndWhile) ||
          code2 || instruction::UJUMP(label) || instruction::LABEL(labelEndWhile);
   DEBUG_EXIT();
