@@ -80,7 +80,7 @@ public:
   antlrcpp::Any visitReturnStmt(AslParser::ReturnStmtContext *ctx);
   antlrcpp::Any visitLeft_expr(AslParser::Left_exprContext *ctx);
   antlrcpp::Any visitExprIdent(AslParser::ExprIdentContext *ctx);
-  //antlrcpp::Any visitArray(AslParser::ArrayContext *ctx);
+  antlrcpp::Any visitArray(AslParser::ArrayContext *ctx);
   antlrcpp::Any visitUnary(AslParser::UnaryContext *ctx);
   antlrcpp::Any visitLogical(AslParser::LogicalContext *ctx);
   antlrcpp::Any visitParenthesis(AslParser::ParenthesisContext *ctx);
