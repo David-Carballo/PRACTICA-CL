@@ -354,8 +354,8 @@ antlrcpp::Any CodeGenVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx) {
   std::string          addr1 = codAtsE.addr;
   instructionList &    code1 = codAtsE.code;
   instructionList &&   code2 = visit(ctx->statements());
-  std::string label = "while"+codeCounters.newLabelWHILE();
-  std::string labelEndWhile = "end"+label;
+  std::string label = "while" + codeCounters.newLabelWHILE();
+  std::string labelEndWhile = "end" + label;
   code = instruction::LABEL(label) || code1 || instruction::FJUMP(addr1, labelEndWhile) ||
          code2 || instruction::UJUMP(label) || instruction::LABEL(labelEndWhile);
   DEBUG_EXIT();
