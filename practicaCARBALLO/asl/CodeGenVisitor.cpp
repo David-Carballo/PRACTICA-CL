@@ -40,7 +40,7 @@
 #include <cstddef>    // std::size_t
 
 // uncomment the following line to enable debugging messages with DEBUG*
-// define DEBUG_BUILD
+//#define DEBUG_BUILD
 #include "../common/debug.h"
 
 // using namespace std;
@@ -243,6 +243,13 @@ antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
         code = code || codepar
                     || instruction::FLOAT(tempF, addrpar)
                     || instruction::PUSH(tempF);
+      }
+      //pass array address (reference parameter)
+      else if (Types.isArrayTy(getTypeDecor(e))){
+        std::string tempA = "%"+codeCounters.newTEMP();
+        code = code || codepar 
+                    || instruction::ALOAD(tempA,addrpar)
+                    || instruction::PUSH(tempA);
       }
       else code = code || codepar || instruction::PUSH(addrpar);
       i++;
@@ -580,6 +587,13 @@ antlrcpp::Any CodeGenVisitor::visitCallFunc(AslParser::CallFuncContext *ctx){
         code = code || codepar
                     || instruction::FLOAT(tempF, addrpar)
                     || instruction::PUSH(tempF);
+      }
+      //pass array address (reference parameter)
+      else if (Types.isArrayTy(getTypeDecor(e))){
+        std::string tempA = "%"+codeCounters.newTEMP();
+        code = code || codepar 
+                    || instruction::ALOAD(tempA,addrpar)
+                    || instruction::PUSH(tempA);
       }
       else code = code || codepar || instruction::PUSH(addrpar);
       i++;
