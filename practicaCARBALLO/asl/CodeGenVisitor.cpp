@@ -161,7 +161,44 @@ antlrcpp::Any CodeGenVisitor::visitAssignStmt(AslParser::AssignStmtContext *ctx)
   instructionList &     code2 = codAtsE2.code;
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
 
-  if (Types.isArrayTy(t1) or Types.isArrayTy(t2)){
+  if(Types.isArrayTy(t1) and Types.isArrayTy(t2)){
+    bool isLocal1 = Symbols.isLocalVarClass(addr1);
+    bool isLocal2  = Symbols.isLocalVarClass(addr2);
+
+    std::string tempAddr1 = "%"+codeCounters.newTEMP();
+    std::string tempAddr2  = "%"+codeCounters.newTEMP();
+
+    if (not isLocal1) code = code || instruction::LOAD(tempAddr1, addr1);
+    if (not isLocal2)  code = code || instruction::LOAD(tempAddr2, addr2);
+
+    std::string tempIndex  = "%"+codeCounters.newTEMP();
+    std::string tempIncrem = "%"+codeCounters.newTEMP();
+    std::string tempSize   = "%"+codeCounters.newTEMP();
+    std::string tempOffset = "%"+codeCounters.newTEMP();
+    std::string tempOffHld = "%"+codeCounters.newTEMP();
+    std::string tempCompar = "%"+codeCounters.newTEMP();
+    std::string tempValue  = "%"+codeCounters.newTEMP();
+
+    std::string labelWhile = "while"+codeCounters.newLabelWHILE();
+    std::string labelEndWhile = "end"+labelWhile;
+
+    code = code || instruction::ILOAD(tempIndex, "0");
+    code = code || instruction::ILOAD(tempIncrem, "1");
+    code = code || instruction::ILOAD(tempSize, std::to_string(Types.getArraySize(Symbols.getType(addr1))));
+    code = code || instruction::ILOAD(tempOffset, "1");
+
+    code = code || instruction::LABEL(labelWhile);
+    code = code || instruction::LT(tempCompar, tempIndex, tempSize);
+    code = code || instruction::FJUMP(tempCompar, labelEndWhile);
+    code = code || instruction::MUL(tempOffHld, tempOffset, tempIndex);
+    code = code || instruction::LOADX(tempValue, isLocal2 ? addr2 : tempAddr2, tempOffHld);
+    code = code || instruction::XLOAD(isLocal1 ? addr1 : tempAddr1, tempOffHld, tempValue);
+    code = code || instruction::ADD(tempIndex, tempIndex, tempIncrem);
+    code = code || instruction::UJUMP(labelWhile);
+    code = code || instruction::LABEL(labelEndWhile);
+  }
+
+  else if (Types.isArrayTy(t1) or Types.isArrayTy(t2)){
     // Left expr is array a[a1] = expr
     if (Types.isArrayTy(t1)) {
       std::string temp = "%"+codeCounters.newTEMP();
@@ -337,15 +374,13 @@ antlrcpp::Any CodeGenVisitor::visitWriteString(AslParser::WriteStringContext *ct
         i += 2;
       }
       else if (s[i+1] == 't' or s[i+1] == '"' or s[i+1] == '\\') {
-        code = code ||
-               instruction::CHLOAD(temp, s.substr(i,2)) ||
-         instruction::WRITEC(temp);
+        code = code || instruction::CHLOAD(temp, s.substr(i,2)) 
+                    || instruction::WRITEC(temp);
         i += 2;
       }
       else {
-        code = code ||
-               instruction::CHLOAD(temp, s.substr(i,1)) ||
-         instruction::WRITEC(temp);
+        code = code || instruction::CHLOAD(temp, s.substr(i,1)) 
+                    || instruction::WRITEC(temp);
         i += 1;
       }
     }
@@ -479,6 +514,11 @@ antlrcpp::Any CodeGenVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx)
     else if (ctx->DIV())  code = code || instruction::DIV(temp, addr1, addr2);
     else if (ctx->MIN())  code = code || instruction::SUB(temp, addr1, addr2);
     else if (ctx->PLUS()) code = code || instruction::ADD(temp, addr1, addr2);
+    else { //ctx->MOD()
+      code = code || instruction::DIV(temp, addr1, addr2) 
+                  || instruction::MUL(temp, temp, addr2) 
+                  || instruction::SUB(temp, addr1, temp);
+    }
   }
   else {
     std::string faddr1 = addr1;
@@ -555,7 +595,10 @@ antlrcpp::Any CodeGenVisitor::visitValue(AslParser::ValueContext *ctx) {
   std::string temp = "%"+codeCounters.newTEMP();
   if(ctx->INTVAL()) code = instruction::ILOAD(temp, ctx->getText());
   else if(ctx->FLOATVAL()) code = instruction::FLOAD(temp, ctx->getText());
-  else if(ctx->CHARVAL()) code = instruction::CHLOAD(temp, ctx->getText());
+  else if(ctx->CHARVAL()) {
+    std::string ch = ctx->getText();
+    code = instruction::CHLOAD(temp, ch.substr(1,ch.size()-2));
+  }
   else code = instruction::LOAD(temp, (ctx->getText() == "true") ? "1" : "0");
   CodeAttribs codAts(temp, "", code);
   DEBUG_EXIT();
