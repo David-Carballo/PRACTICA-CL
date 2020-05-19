@@ -249,9 +249,8 @@ antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
     }
     // call fname execute function fname.
     code = code || instruction::CALL(name);
-    for(auto e : ctx->expr()){
+    for (uint i = 0; i < (ctx->expr()).size(); ++i)
       code = code || instruction::POP();
-    }
   }
   // call fname execute function fname.
   else code = code || instruction::CALL(name);
@@ -389,9 +388,17 @@ antlrcpp::Any CodeGenVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx) {
     std::string       addr1 = codAt1.addr;
     instructionList & code1 = codAt1.code;
 
-    code = code || code1;
+    if (Symbols.isLocalVarClass(addr)) {
+      code = code || code1;
+      codAts = CodeAttribs(addr, addr1, code);
+    }
+    else {
+      std::string tempA = "%"+codeCounters.newTEMP();
+      code = code || code1
+                  || instruction::LOAD(tempA, addr);
+      codAts = CodeAttribs(tempA, addr1, code);
+    }
 
-    codAts = CodeAttribs(addr, addr1, code);
 
   }
   DEBUG_EXIT();
@@ -579,9 +586,8 @@ antlrcpp::Any CodeGenVisitor::visitCallFunc(AslParser::CallFuncContext *ctx){
     }
     // call fname execute function fname.
     code = code || instruction::CALL(addr1);
-    for(auto e : ctx->expr()){
+    for (uint i = 0; i < (ctx->expr()).size(); ++i)
       code = code || instruction::POP();
-    }
   }
   // call fname execute function fname.
   else code = code || instruction::CALL(addr1);
@@ -608,18 +614,25 @@ antlrcpp::Any CodeGenVisitor::visitArray(AslParser::ArrayContext *ctx){
   std::string       addr = codAts.addr;
   instructionList & code = codAts.code;
 
-  if(ctx->expr()){ //Array case
-    CodeAttribs && codAt1 = visit(ctx->expr());
-    std::string       addr1 = codAt1.addr;
-    instructionList & code1 = codAt1.code;
+  CodeAttribs && codAt1 = visit(ctx->expr());
+  std::string       addr1 = codAt1.addr;
+  instructionList & code1 = codAt1.code;
+
+  std::string temp = "%"+codeCounters.newTEMP();
     
-    std::string temp = "%"+codeCounters.newTEMP();
+  if (Symbols.isLocalVarClass(addr)) {
     code = code || code1
                 || instruction::LOADX(temp, addr, addr1) ;
+  } 
+  else {
+    std::string tempA = "%"+codeCounters.newTEMP();
+    code = code || code1
+                || instruction::LOAD(tempA, addr)
+                || instruction::LOADX(temp, tempA, addr1) ;
+  } 
 
-    codAts = CodeAttribs(temp, "", code);
+  codAts = CodeAttribs(temp, "", code);
 
-  }
   DEBUG_EXIT();
   return codAts;
 }
