@@ -22,7 +22,7 @@ Finally, you will be provided with a list of ASL programs to incrementally test 
 
 
 ### EXAMPLE OF CODE 
-`
+```C++
 func f1(a: int) : int
   return a+1;
 endfunc
@@ -34,7 +34,6 @@ endfunc
 func f3(c: int)
   write "hola";
 endfunc
-
 
 func main()
   var a,b,c : int
@@ -48,4 +47,4 @@ func main()
   f1 = f2;
   f1 = f3;
 endfunc
-`
+```
